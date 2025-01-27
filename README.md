@@ -13,6 +13,7 @@ A Python application that manages multiple Chrome instances with automated cooki
 
 ## Project Structure
 
+```
 selenium-browser-manager/
 ├── profiles/                   # Cookie storage directory
 │   └── [profile_name]/         # Individual profiles
@@ -22,6 +23,7 @@ selenium-browser-manager/
 ├── main.py                     # Main application script
 ├── requirements.txt            # Dependency list
 └── README.md                   # Documentation
+```
 
 ## Prerequisites
 
@@ -31,18 +33,30 @@ selenium-browser-manager/
 
 ## Quick Start
 
-1. Install dependencies:
-   pip install -r requirements.txt
+1. Clone the repository:
+```bash
+git clone https://github.com/weslx/EasyMultiBrowser
+cd EasyMultiBrowser
+```
 
-2. Run the application:
-   python main.py
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-3. Choose a profile when prompted:
-   Select profile: work
+3. Run the application:
+```bash
+python main.py
+```
 
-4. Interact with the opened browsers normally
+4. Choose a profile when prompted:
+```bash
+Select profile: work  # Type your profile name and press Enter
+```
 
-5. Press Enter when done to save cookies and exit
+5. Interact with the opened browsers normally
+
+6. Press Enter in the terminal when done to save cookies and exit
 
 ### Customizing URLs
 Modify the PREDEFINED_URLS list in the code to open different websites:
