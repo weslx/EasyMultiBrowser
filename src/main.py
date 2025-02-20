@@ -2,13 +2,15 @@ import os
 import random
 import time
 import threading
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
-from webdriver_manager.chrome import ChromeDriverManager
+import undetected_chromedriver as uc  # use undetected chromedriver
+from selenium_stealth import stealth
 
 PREDEFINED_URLS = ["https://www.youtube.com", "https://github.com/weslx"]
-NUM_BROWSERS = 3
+NUM_BROWSERS = 5
+
+# Create a lock to ensure that only one thread initializes Chrome at a time.
+chrome_init_lock = threading.Lock()
 
 def ask_profile():
     while True:
@@ -26,44 +28,54 @@ def human_interaction(driver):
                 random.randint(-10, 10)
             ).perform()
             time.sleep(random.uniform(0.1, 0.3))
-        
+
         scroll_amount = random.randint(200, 800)
         driver.execute_script(f"window.scrollBy(0, {scroll_amount})")
         time.sleep(random.uniform(0.5, 1.5))
-        
-    except Exception as e:
+    except Exception:
         pass
 
 def create_driver(profile, instance_id, drivers):
     profile_path = os.path.abspath(f'profiles/{profile}/instance_{instance_id}')
     os.makedirs(profile_path, exist_ok=True)
 
-    options = webdriver.ChromeOptions()
-    
+    options = uc.ChromeOptions()
 
     options.add_argument(f"--user-data-dir={profile_path}")
     options.add_argument(f"--profile-directory=Profile_{instance_id}")
-    
-
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-infobars")
     options.add_argument("--disable-popup-blocking")
     options.add_argument("--mute-audio")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--lang=pt-BR")
-    
 
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    user_agent = "Mozilla/5.0 (Windows; Windows NT 10.2; WOW64; en-US) AppleWebKit/603.25 (KHTML, like Gecko) Chrome/53.0.1118.293 Safari/603.6 Edge/8.81572"
     options.add_argument(f"user-agent={user_agent}")
-    
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
 
     try:
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        
+        # Ensure only one thread creates a driver at a time.
+        with chrome_init_lock:
+            driver = uc.Chrome(options=options, version_main=131)
 
+        # Apply selenium-stealth to help mask fingerprinting details
+        stealth(driver,
+                languages=["pt-BR", "pt", "en-US", "en"],
+                vendor="Google Inc.",
+                platform="Win32",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True,
+                )
+
+        # Override geolocation (example: San Francisco)
+        driver.execute_cdp_cmd("Emulation.setGeolocationOverride", {
+            "latitude": 37.7749,
+            "longitude": -122.4194,
+            "accuracy": 100
+        })
+
+        # Inject custom scripts to modify navigator properties:
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
             Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
@@ -79,15 +91,20 @@ def create_driver(profile, instance_id, drivers):
             else:
                 driver.switch_to.new_window('tab')
                 driver.get(url)
-            time.sleep(random.uniform(1, 3))
-            human_interaction(driver)
-
+                time.sleep(random.uniform(1, 3))
+                human_interaction(driver)
+        time.sleep(4)
+        driver.get("https://hailuoaifree.com/image-to-video")
         drivers.append(driver)
-
+        driver.switch_to.new_window('tab')
+        driver.get("https://hailuoaifree.com/image-to-video")
+        
     except Exception as e:
         print(f"Error creating browser: {e}")
-        if 'driver' in locals():
+        try:
             driver.quit()
+        except:
+            pass
 
 def manage_profile(profile):
     drivers = []
@@ -97,7 +114,6 @@ def manage_profile(profile):
         t = threading.Thread(target=create_driver, args=(profile, i, drivers))
         threads.append(t)
         t.start()
-        time.sleep(1)
 
     for t in threads:
         t.join()
