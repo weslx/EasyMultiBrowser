@@ -4,7 +4,7 @@ from seleniumbase import Driver
 from helpers import automation_flow  # Import the automation flow function
 
 PREDEFINED_URLS = []
-NUM_BROWSERS = 6
+NUM_BROWSERS = 1
 
 # Default screen resolution (fallback)
 SCREEN_WIDTH = 1920
@@ -13,6 +13,16 @@ SCREEN_HEIGHT = 1080
 # Create a lock to ensure that only one thread initializes Chrome at a time.
 chrome_init_lock = threading.Lock()
 
+# Fixed browser positions - each tuple contains (x, y, width, height)
+BROWSER_POSITIONS = {
+    1: (0, 0, 320, SCREEN_HEIGHT),
+    2: (320, 0, 320, SCREEN_HEIGHT),
+    3: (640, 0, 320, SCREEN_HEIGHT),
+    4: (960, 0, 320, SCREEN_HEIGHT),
+    5: (1280, 0, 320, SCREEN_HEIGHT),
+    6: (1600, 0, 320, SCREEN_HEIGHT)
+}
+
 def ask_profile():
     while True:
         profile = input("Select profile: ").strip()
@@ -20,38 +30,12 @@ def ask_profile():
             return profile
         print("Profile name cannot be empty!")
 
-def calculate_browser_dimensions():
-    """Calculate dimensions for browsers that ALWAYS use full screen height"""
-    # Always use the full screen height
-    height = SCREEN_HEIGHT
-    
-    # Divide the screen width by the number of browsers
-    width = SCREEN_WIDTH // NUM_BROWSERS
-    
-    return width, height
-
-def calculate_browser_position(instance_id):
-    """Calculate position for each browser in a side-by-side arrangement"""
-    width, height = calculate_browser_dimensions()
-    
-    # Place each browser side by side
-    x = (instance_id - 1) * width
-    
-    # Start from the top of the screen
-    y = 0
-    
-    return x, y, width, height
-
-
-
-
 def create_driver(profile, instance_id, drivers):
     profile_path = os.path.abspath(f'profiles/{profile}/instance_{instance_id}')
     os.makedirs(profile_path, exist_ok=True)
     try:
-        # Calculate position and size
-        x, y, width, height = calculate_browser_position(instance_id)
-        
+        # Get fixed position and size for this instance
+        x, y, width, height = BROWSER_POSITIONS[instance_id]
         
         # Ensure only one thread creates a driver at a time
         with chrome_init_lock:
@@ -65,10 +49,9 @@ def create_driver(profile, instance_id, drivers):
                 ad_block_on=True, 
             )
 
-            # Set window size and position - FULL HEIGHT
+            # Set window size and position using fixed values
             driver.set_window_size(width, height)
             driver.set_window_position(x, y)
-
 
         # Open all URLs in separate tabs
         for index, url in enumerate(PREDEFINED_URLS):
